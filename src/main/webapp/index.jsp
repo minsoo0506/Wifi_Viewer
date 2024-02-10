@@ -48,14 +48,13 @@
     var locationFetched = false;
 
     window.onload = function() {
-        // 페이지 로드 시 저장된 위치 정보 불러오기
-        var savedLat = localStorage.getItem('lat');
-        var savedLng = localStorage.getItem('lng');
-        if (savedLat && savedLng) {
-          document.getElementById('lat').value = savedLat;
-          document.getElementById('lng').value = savedLng;
-          locationFetched = true;
-          document.getElementById('locationWarning').innerText = "근처 WIFI 정보 보기를 눌러주세요.";
+        // sessionStorage에서 위치 정보 불러오기
+        var lat = sessionStorage.getItem('lat');
+        var lng = sessionStorage.getItem('lng');
+        if (lat && lng) {
+            document.getElementById('lat').value = lat;
+            document.getElementById('lng').value = lng;
+            locationFetched = true;
         }
 
         document.getElementById('getLocation').addEventListener('click', function() {
@@ -65,9 +64,9 @@
                     document.getElementById('lng').value = position.coords.longitude;
                     locationFetched = true;
 
-                    // 위치 정보를 localStorage에 저장
-                    localStorage.setItem('lat', position.coords.latitude);
-                    localStorage.setItem('lng', position.coords.longitude);
+                    // 위치 정보를 sessionStorage에 저장
+                    sessionStorage.setItem('lat', position.coords.latitude);
+                    sessionStorage.setItem('lng', position.coords.longitude);
 
                     // 위치 정보를 서버에 전송하는 코드
                     var xhr = new XMLHttpRequest();
@@ -92,11 +91,13 @@
         document.getElementById('getWifi').addEventListener('click', function() {
             if (!locationFetched) {
                 document.getElementById('locationWarning').style.display = 'block';
+                alert('내 위치 가져오기를 한 후에 조회해 주세요');
                 return;
             } else {
                 document.getElementById('locationWarning').style.display = 'none';
             }
 
+            
             var lat = document.getElementById('lat').value;
             var lng = document.getElementById('lng').value;
 
@@ -140,6 +141,7 @@
                 }
             };
             xhr.send();
+
         });
     };
     </script>
