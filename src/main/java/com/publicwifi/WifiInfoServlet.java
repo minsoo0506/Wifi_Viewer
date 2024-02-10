@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -18,20 +19,24 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 
-@WebServlet(urlPatterns = "/wifiInfo")
+@WebServlet(urlPatterns = {"/wifiInfo", "/wifiInfo/*"})
 public class WifiInfoServlet extends HttpServlet {
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
-        try {
-            //Connection connection = DatabaseConnection.getConnection();
-            handleWifiInfoRequest(req, resp);
-        } catch (SQLException e) {
-            throw new ServletException("Cannot connect to the database", e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null || pathInfo.equals("/")) {
+            // 기존 로직을 실행
+            try {
+                handleWifiInfoRequest(req, resp);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            handleWifiDetailRequest(req, resp);
         }
     }
 
@@ -136,11 +141,60 @@ public class WifiInfoServlet extends HttpServlet {
         }
     }
 
+    public void handleWifiDetailRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String pathInfo = request.getPathInfo();
+        String wifiMgrNo = pathInfo.substring(1); 
+    
+        // 쿼리 파라미터에서 거리 정보를 추출
+        String distanceStr = request.getParameter("distance");
+        double distance = 0.0;
+        if (distanceStr != null) {
+            distance = Double.parseDouble(distanceStr);
+        }
+    
+        WifiInfo wifiInfo = getWifiInfo(wifiMgrNo);
+        wifiInfo.setDistance(distance);
+    
+        request.setAttribute("wifiInfo", wifiInfo);
+        forwardToPage(request, response, "/wifiDetail.jsp");
+    }
+
     private void forwardToPage(HttpServletRequest request, HttpServletResponse response, String page) {
         try {
             request.getRequestDispatcher(page).forward(request, response);
         } catch (ServletException | IOException ex) {
             ex.printStackTrace();
         }
-    }    
+    }
+    
+    private WifiInfo getWifiInfo(String wifiMgrNo) throws ServletException {
+        try (Connection dbConn = DatabaseConnection.getConnection()){
+            String sql = "SELECT * FROM wifi_info WHERE X_SWIFI_MGR_NO = ?";
+            PreparedStatement pstmt = dbConn.prepareStatement(sql);
+            pstmt.setString(1, wifiMgrNo);
+            ResultSet rs = pstmt.executeQuery();
+    
+            WifiInfo wifiInfo = new WifiInfo();
+            wifiInfo.setX_SWIFI_MGR_NO(rs.getString("X_SWIFI_MGR_NO"));
+            wifiInfo.setX_SWIFI_WRDOFC(rs.getString("X_SWIFI_WRDOFC"));
+            wifiInfo.setX_SWIFI_MAIN_NM(rs.getString("X_SWIFI_MAIN_NM"));
+            wifiInfo.setX_SWIFI_ADRES1(rs.getString("X_SWIFI_ADRES1"));
+            wifiInfo.setX_SWIFI_ADRES2(rs.getString("X_SWIFI_ADRES2"));
+            wifiInfo.setX_SWIFI_INSTL_FLOOR(rs.getString("X_SWIFI_INSTL_FLOOR"));
+            wifiInfo.setX_SWIFI_INSTL_TY(rs.getString("X_SWIFI_INSTL_TY"));
+            wifiInfo.setX_SWIFI_INSTL_MBY(rs.getString("X_SWIFI_INSTL_MBY"));
+            wifiInfo.setX_SWIFI_SVC_SE(rs.getString("X_SWIFI_SVC_SE"));
+            wifiInfo.setX_SWIFI_CMCWR(rs.getString("X_SWIFI_CMCWR"));
+            wifiInfo.setX_SWIFI_CNSTC_YEAR(rs.getInt("X_SWIFI_CNSTC_YEAR"));
+            wifiInfo.setX_SWIFI_INOUT_DOOR(rs.getString("X_SWIFI_INOUT_DOOR"));
+            wifiInfo.setX_SWIFI_REMARS3(rs.getString("X_SWIFI_REMARS3"));
+            wifiInfo.setLAT(rs.getDouble("LAT"));
+            wifiInfo.setLNT(rs.getDouble("LNT"));
+            wifiInfo.setWORK_DTTM(rs.getString("WORK_DTTM"));
+            
+            return wifiInfo;
+        } catch (SQLException e) {
+            throw new ServletException("Cannot connect to the database", e);
+        }
+    }
 }

@@ -119,7 +119,7 @@
                           row.insertCell(0).innerHTML = wifiInfos[i].distance.toFixed(4);
                           row.insertCell(1).innerHTML = wifiInfos[i].X_SWIFI_MGR_NO;
                           row.insertCell(2).innerHTML = wifiInfos[i].X_SWIFI_WRDOFC;
-                          row.insertCell(3).innerHTML = wifiInfos[i].X_SWIFI_MAIN_NM;
+                          row.insertCell(3).innerHTML = '<a href="/wifiInfo/' + wifiInfos[i].X_SWIFI_MGR_NO + '?distance=' + wifiInfos[i].distance.toFixed(4) + '">' + wifiInfos[i].X_SWIFI_MAIN_NM + '</a>';
                           row.insertCell(4).innerHTML = wifiInfos[i].X_SWIFI_ADRES1;
                           row.insertCell(5).innerHTML = wifiInfos[i].X_SWIFI_ADRES2;
                           row.insertCell(6).innerHTML = wifiInfos[i].X_SWIFI_INSTL_FLOOR;
