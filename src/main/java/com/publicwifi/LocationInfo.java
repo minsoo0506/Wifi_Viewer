@@ -1,20 +1,11 @@
 package com.publicwifi;
 
+// 위치 정보를 저장하기 위한 클래스
 public class LocationInfo {
     private int id;
     private double lat;
     private double lng;
     private String dttm;
-
-    @Override
-    public String toString() {
-        return "LocationInfo{" +
-                "location_ID=" + id +
-                ", LAT=" + lat +
-                ", LNG=" + lng +
-                ", Search_DTTM='" + dttm + '\'' +
-                '}';
-    }
 
     public int getID() {
         return id;

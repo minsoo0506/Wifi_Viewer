@@ -23,11 +23,15 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 
+// 와이파이 정보를 조회하기 위한 서블릿
 @WebServlet(urlPatterns = {"/wifiInfo", "/wifiInfo/*"})
 public class WifiInfoServlet extends HttpServlet {
+    // GET 요청을 처리하기 위한 메소드
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        // 요청 URL이 /wifiInfo/*로 시작하는지 확인
         String pathInfo = req.getPathInfo();
+        // /wifiInfo로 시작하는 경우, 기존 로직을 실행
         if (pathInfo == null || pathInfo.equals("/")) {
             // 기존 로직을 실행
             try {
@@ -36,17 +40,23 @@ public class WifiInfoServlet extends HttpServlet {
                 e.printStackTrace();
             }
         } else {
+            // /wifiInfo/*로 시작하는 경우, 새로운 로직을 실행
             handleWifiDetailRequest(req, resp);
         }
     }
 
+    // POST 요청을 처리하기 위한 메소드
     public void handleWifiInfoRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        // 데이터베이스 연결
         try (Connection dbConn = DatabaseConnection.getConnection()) {
-            dbConn.setAutoCommit(false);
+            // 데이터베이스 테이블에서 와이파이 정보 조회
+            dbConn.setAutoCommit(false); // AutoCommit을 false로 설정
+            // 기존 데이터 삭제
             Statement stmt = dbConn.createStatement();
             String deleteSql = "DELETE FROM wifi_info";
             stmt.execute(deleteSql);
 
+            // 새로운 테이블 생성
             String createTableSql = "CREATE TABLE IF NOT EXISTS wifi_info (" +
                     "X_SWIFI_MGR_NO TEXT PRIMARY KEY," +
                     "X_SWIFI_WRDOFC TEXT," +
@@ -67,32 +77,41 @@ public class WifiInfoServlet extends HttpServlet {
                     ")";
             stmt.execute(createTableSql);
 
+            // 와이파이 정보 API 호출
             String apiUrl = "http://openapi.seoul.go.kr:8088/696f4e41666d73703131336d68556d4b/xml/TbPublicWifiInfo/1/5/";
             URL url = new URL(apiUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            // GET 요청 설정
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-type", "application/xml");
 
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(conn.getInputStream());
+            // API 응답을 XML로 파싱
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance(); // DocumentBuilderFactory 생성
+            DocumentBuilder builder = factory.newDocumentBuilder(); // DocumentBuilder 생성
+            Document doc = builder.parse(conn.getInputStream()); // XML 파싱
 
+            // API 응답에서 총 개수를 추출
             int totalCount = Integer.parseInt(doc.getElementsByTagName("list_total_count").item(0).getTextContent());
             
+            // 와이파이 정보를 데이터베이스에 저장하는 코드
             String sql = "INSERT INTO wifi_info VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             PreparedStatement pstmt = dbConn.prepareStatement(sql);
 
-            int start = 1;
-            int end = 1000;
+            int start = 1; // 시작 인덱스
+            int end = 1000; // 종료 인덱스
+            // API 응답에서 와이파이 정보를 추출
             while (start <= totalCount) {
+                // API 호출
                 apiUrl = "http://openapi.seoul.go.kr:8088/696f4e41666d73703131336d68556d4b/xml/TbPublicWifiInfo/" + start + "/" + end + "/";
                 url = new URL(apiUrl);
                 conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Content-type", "application/xml");
 
+                // XML 파싱
                 doc = builder.parse(conn.getInputStream());
 
+                // 와이파이 정보를 데이터베이스에 저장
                 NodeList nodeList = doc.getElementsByTagName("row");
 
                 for (int i = 0; i < nodeList.getLength(); i++) {
@@ -121,13 +140,14 @@ public class WifiInfoServlet extends HttpServlet {
                 pstmt.executeBatch();
                 //Batch 초기화
                 pstmt.clearBatch();
-                dbConn.commit();
-                start = end + 1;
-                end += 1000;
+                dbConn.commit(); // commit
+                start = end + 1; // 시작 인덱스 업데이트
+                end += 1000; // 종료 인덱스 업데이트
             }
             pstmt.close();
             dbConn.close();
 
+            // 와이파이 정보 조회 결과를 JSP 페이지로 전달
             request.setAttribute("message", totalCount + "개의 WIFI 정보를 정상적으로 저장하였습니다.");
             request.getRequestDispatcher("load-wifi.jsp").forward(request, response);
         } catch (NullPointerException e) {
@@ -141,7 +161,9 @@ public class WifiInfoServlet extends HttpServlet {
         }
     }
 
+    // GET 요청을 처리하기 위한 메소드
     public void handleWifiDetailRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // 요청 URL에서 와이파이 관리 번호를 추출
         String pathInfo = request.getPathInfo();
         String wifiMgrNo = pathInfo.substring(1); 
     
@@ -151,24 +173,32 @@ public class WifiInfoServlet extends HttpServlet {
         if (distanceStr != null) {
             distance = Double.parseDouble(distanceStr);
         }
-    
+        
+        // 와이파이 정보 조회
         WifiInfo wifiInfo = getWifiInfo(wifiMgrNo);
+        // 거리 정보 설정
         wifiInfo.setDistance(distance);
-    
+        
+        // 와이파이 정보를 JSP 페이지로 전달
         request.setAttribute("wifiInfo", wifiInfo);
         forwardToPage(request, response, "/wifiDetail.jsp");
     }
 
+    // JSP 페이지로 포워딩하는 메소드
     private void forwardToPage(HttpServletRequest request, HttpServletResponse response, String page) {
         try {
+            // JSP 페이지로 포워딩
             request.getRequestDispatcher(page).forward(request, response);
         } catch (ServletException | IOException ex) {
             ex.printStackTrace();
         }
     }
     
+    // 와이파이 정보를 조회하는 메소드(상세 정보 조회 시 사용) 
     private WifiInfo getWifiInfo(String wifiMgrNo) throws ServletException {
+        // 데이터베이스 연결
         try (Connection dbConn = DatabaseConnection.getConnection()){
+            // 데이터베이스 테이블에서 와이파이 정보 조회
             String sql = "SELECT * FROM wifi_info WHERE X_SWIFI_MGR_NO = ?";
             PreparedStatement pstmt = dbConn.prepareStatement(sql);
             pstmt.setString(1, wifiMgrNo);

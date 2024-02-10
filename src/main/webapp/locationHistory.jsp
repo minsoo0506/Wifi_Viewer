@@ -38,7 +38,9 @@
             }
     </style>
     <script>
+        // 삭제 버튼 클릭 시 해당 위치 정보 삭제하는 코드
         function deleteLocation(id) {
+            // 삭제할 위치 정보의 ID를 파라미터로 전달하여 삭제 요청
             var xhr = new XMLHttpRequest();
             xhr.open("DELETE", "/history?ID=" + id, true);
             xhr.onload = function () {

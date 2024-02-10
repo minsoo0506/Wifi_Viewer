@@ -1,5 +1,6 @@
 package com.publicwifi;
 
+// 와이파이 정보를 저장하기 위한 클래스
 public class WifiInfo {
     private double distance;
     private String X_SWIFI_MGR_NO;

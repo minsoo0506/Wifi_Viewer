@@ -14,20 +14,28 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+// 주변 와이파이 정보를 조회하기 위한 서블릿
 @WebServlet(urlPatterns = "/nearbyWifi")
 public class NearbyWifiServlet extends HttpServlet {
+    // GET 요청을 처리하기 위한 메소드
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
+            // GET 요청으로부터 위도와 경도를 읽어옴
             double lat = Double.parseDouble(req.getParameter("lat"));
             double lng = Double.parseDouble(req.getParameter("lng"));
-
+            
+            // 데이터베이스 연결
             try (Connection dbConn = DatabaseConnection.getConnection()) {
+                // 데이터베이스 테이블에서 주변 와이파이 정보 조회
                 String sql = "SELECT * FROM wifi_info";
                 PreparedStatement pstmt = dbConn.prepareStatement(sql);
 
+                // SQL 쿼리 실행
                 ResultSet rs = pstmt.executeQuery();
+                // 조회 결과를 저장하기 위한 리스트
                 List<WifiInfo> wifiInfos = new ArrayList<>();
+                // 조회 결과를 리스트에 저장
                 while (rs.next()) {
                     WifiInfo wifiInfo = new WifiInfo();
                     wifiInfo.setX_SWIFI_MGR_NO(rs.getString("X_SWIFI_MGR_NO"));
@@ -50,7 +58,8 @@ public class NearbyWifiServlet extends HttpServlet {
                     wifiInfo.setDistance(distance);
                     wifiInfos.add(wifiInfo);
                 }
-
+                
+                // 조회 결과를 JSON 형태로 응답
                 resp.setContentType("application/json");
                 resp.setCharacterEncoding("UTF-8");
                 resp.getWriter().write(new Gson().toJson(wifiInfos));
@@ -60,8 +69,9 @@ public class NearbyWifiServlet extends HttpServlet {
         }
     }
 
+    // 두 지점 간의 거리를 계산하는 메소드
     private double haversine(double lat1, double lon1, double lat2, double lon2) {
-        int r = 6371; // radius of the earth in km
+        int r = 6371; // 지구의 반지름
         double latDistance = Math.toRadians(lat2 - lat1);
         double lonDistance = Math.toRadians(lon2 - lon1);
         double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
